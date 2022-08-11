@@ -1,7 +1,5 @@
 version: '3.3'
-
 services:
-
   traefik:
     # Use the latest Traefik image
     image: traefik:v2.8.1
@@ -10,6 +8,18 @@ services:
       - 80:80
       # Listen on port 443, default for HTTPS
       - 443:443
+    networks:
+      # Use the public network created to be shared between Traefik and
+      # any other service that needs to be publicly available with HTTPS
+      - public
+    secrets:
+      - DASHBOARD_DOMAIN
+      - DASHBOARD_USERNAME
+      - DASHBOARD_PASSWORD
+    environment:
+      - DASHBOARD_DOMAIN__FILE=/run/secrets/DASHBOARD_DOMAIN
+      - DASHBOARD_USERNAME__FILE=/run/secrets/DASHBOARD_USERNAME
+      - DASHBOARD_PASSWORD__FILE=/run/secrets/DASHBOARD_PASSWORD
     deploy:
       placement:
         constraints:
@@ -26,20 +36,20 @@ services:
         # That way you can add other internal Traefik instances per stack if needed
         - traefik.constraint-label=public
         # admin-auth middleware with HTTP Basic auth
-        # Using the environment variables USERNAME and HASHED_PASSWORD
-        - traefik.http.middlewares.admin-auth.basicauth.users=${DASHBOARD_USERNAME?Variable not set}:${DASHBOARD_HASHED_PASSWORD?Variable not set}
+        # Using the environment variables DASHBOARD_USERNAME and DASHBOARD_PASSWORD
+        - traefik.http.middlewares.admin-auth.basicauth.users=${DASHBOARD_USERNAME?Variable not set}:${DASHBOARD_PASSWORD?Variable not set}
         # https-redirect middleware to redirect HTTP to HTTPS
         # It can be re-used by other stacks in other Docker Compose files
         - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
         - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
         # traefik-http set up only to use the middleware to redirect to https
-        # Uses the environment variable DOMAIN
+        # Uses the environment variable DASHBOARD_DOMAIN
         - traefik.http.routers.public-http.rule=Host(`${DASHBOARD_DOMAIN?Variable not set}`)
         - traefik.http.routers.public-http.entrypoints=http
         - traefik.http.routers.public-http.middlewares=https-redirect
         # traefik-https the actual router using HTTPS
         # Uses the environment variable DOMAIN
-        - traefik.http.routers.public-https.rule=Host(`${TOOLBOX_DOMAIN?Variable not set}`)
+        - traefik.http.routers.public-https.rule=Host(`${DASHBOARD_DOMAIN?Variable not set}`)
         - traefik.http.routers.public-https.entrypoints=https
         - traefik.http.routers.public-https.tls=true
         # Use the special Traefik service api@internal with the web UI/Dashboard
@@ -80,17 +90,11 @@ services:
       - --log
       # Enable the Dashboard and API
       - --api
-    networks:
-      # Use the public network created to be shared between Traefik and
-      # any other service that needs to be publicly available with HTTPS
-      - public
-
 volumes:
   # Create a volume to store the certificates, there is a constraint to make sure
   # Traefik is always deployed to the same Docker node with the same volume containing
   # the HTTPS certificates
   public-certificates:
-
 networks:
   # Use the previously created public network "public", shared with other
   # services that need to be publicly available via this Traefik
