@@ -13,13 +13,13 @@ services:
       # any other service that needs to be publicly available with HTTPS
       - public
     secrets:
-      - SWHUB_DASHBOARD_DOMAIN
-      - SWHUB_DASHBOARD_USERNAME
-      - SWHUB_DASHBOARD_PASSWORD
+      - DASHBOARD_DOMAIN
+      - DASHBOARD_USERNAME
+      - DASHBOARD_PASSWORD
     environment:
-      - SWHUB_DASHBOARD_DOMAIN__FILE=/run/secrets/SWHUB_DASHBOARD_DOMAIN
-      - SWHUB_DASHBOARD_USERNAME__FILE=/run/secrets/SWHUB_DASHBOARD_USERNAME
-      - SWHUB_DASHBOARD_PASSWORD__FILE=/run/secrets/SWHUB_DASHBOARD_PASSWORD
+      - DASHBOARD_DOMAIN__FILE=/run/secrets/DASHBOARD_DOMAIN
+      - DASHBOARD_USERNAME__FILE=/run/secrets/DASHBOARD_USERNAME
+      - DASHBOARD_PASSWORD__FILE=/run/secrets/DASHBOARD_PASSWORD
     deploy:
       placement:
         constraints:
@@ -37,19 +37,19 @@ services:
         - traefik.constraint-label=public
         # admin-auth middleware with HTTP Basic auth
         # Using the environment variables DASHBOARD_USERNAME and DASHBOARD_PASSWORD
-        - traefik.http.middlewares.admin-auth.basicauth.users=${SWHUB_DASHBOARD_USERNAME?Variable not set}:${SWHUB_DASHBOARD_PASSWORD?Variable not set}
+        - traefik.http.middlewares.admin-auth.basicauth.users=${DASHBOARD_USERNAME?Variable not set}:${DASHBOARD_PASSWORD?Variable not set}
         # https-redirect middleware to redirect HTTP to HTTPS
         # It can be re-used by other stacks in other Docker Compose files
         - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
         - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
         # traefik-http set up only to use the middleware to redirect to https
         # Uses the environment variable DASHBOARD_DOMAIN
-        - traefik.http.routers.public-http.rule=Host(`${SWHUB_DASHBOARD_DOMAIN?Variable not set}`)
+        - traefik.http.routers.public-http.rule=Host(`${DASHBOARD_DOMAIN?Variable not set}`)
         - traefik.http.routers.public-http.entrypoints=http
         - traefik.http.routers.public-http.middlewares=https-redirect
         # traefik-https the actual router using HTTPS
         # Uses the environment variable DOMAIN
-        - traefik.http.routers.public-https.rule=Host(`${SWHUB_DASHBOARD_DOMAIN?Variable not set}`)
+        - traefik.http.routers.public-https.rule=Host(`${DASHBOARD_DOMAIN?Variable not set}`)
         - traefik.http.routers.public-https.entrypoints=https
         - traefik.http.routers.public-https.tls=true
         # Use the special Traefik service api@internal with the web UI/Dashboard
